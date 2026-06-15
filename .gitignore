@@ -5,7 +5,6 @@ __pycache__/
 *.log
 *.spec
 *.pyc
-.trae/
 debug_err.txt
 headers.txt
 match1.html
