@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}CS2 Demo Stats{% endblock %}</title>
+    <style>
+        :root {
+            --bg-primary: #0f1923;
+            --bg-secondary: #1a2a3a;
+            --bg-card: #1e3040;
+            --text-primary: #e8e8e8;
+            --text-secondary: #8a9baa;
+            --accent: #ffa500;
+            --accent-hover: #ffb833;
+            --green: #4caf50;
+            --red: #f44336;
+            --blue: #42a5f5;
+            --border: #2a3d4f;
+            --rating-high: #4caf50;
+            --rating-mid: #4caf50;
+            --rating-low: #f44336;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans SC', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .nav {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            padding: 0 24px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+        }
+
+        .nav-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            height: 60px;
+            gap: 32px;
+        }
+
+        .nav-logo {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--accent);
+            text-decoration: none;
+            letter-spacing: 1px;
+        }
+
+        .nav-logo span {
+            color: var(--text-primary);
+            font-weight: 400;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 24px;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: color 0.2s;
+            padding: 4px 0;
+            border-bottom: 2px solid transparent;
+        }
+
+        .nav-links a:hover,
+        .nav-links a.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 32px 24px;
+        }
+
+        .flash-msg {
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .flash-msg.success {
+            background: rgba(76, 175, 80, 0.15);
+            color: var(--green);
+            border: 1px solid rgba(76, 175, 80, 0.3);
+        }
+
+        .flash-msg.error {
+            background: rgba(244, 67, 54, 0.15);
+            color: var(--red);
+            border: 1px solid rgba(244, 67, 54, 0.3);
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--text-primary);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #0f1923;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+            box-shadow: 0 0 20px rgba(255, 165, 0, 0.3);
+        }
+
+        .btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border);
+        }
+
+        .btn-danger {
+            background: transparent;
+            color: var(--red);
+            border: 1px solid var(--red);
+            font-size: 12px;
+            padding: 6px 14px;
+        }
+
+        .btn-danger:hover {
+            background: rgba(244, 67, 54, 0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        thead th {
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+            font-weight: 600;
+            text-align: left;
+            padding: 12px 16px;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+
+        tbody td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+
+        tbody tr:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .rating-cell {
+            font-weight: 700;
+            font-family: 'SF Mono', 'Consolas', 'Courier New', monospace;
+            font-size: 16px;
+        }
+
+        .rating-high { color: var(--rating-high); }
+        .rating-mid { color: var(--rating-mid); }
+        .rating-low { color: var(--rating-low); }
+
+        .rank-num {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 13px;
+        }
+
+        .rank-1 { background: linear-gradient(135deg, #ffd700, #ffa000); color: #1a1a1a; }
+        .rank-2 { background: linear-gradient(135deg, #c0c0c0, #9e9e9e); color: #1a1a1a; }
+        .rank-3 { background: linear-gradient(135deg, #cd7f32, #8d6e63); color: #1a1a1a; }
+
+        .player-name {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .ktd {
+            font-family: 'SF Mono', 'Consolas', 'Courier New', monospace;
+        }
+
+        .ktd .k { color: var(--green); }
+        .ktd .d { color: var(--red); }
+        .ktd .a { color: var(--blue); }
+
+        .map-badge {
+            display: inline-block;
+            background: var(--bg-secondary);
+            padding: 2px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: var(--accent);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state h3 {
+            font-size: 20px;
+            margin-bottom: 12px;
+            color: var(--text-primary);
+        }
+
+        .empty-state p {
+            font-size: 14px;
+            margin-bottom: 24px;
+        }
+
+        .upload-zone {
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .upload-zone:hover {
+            border-color: var(--accent);
+            background: rgba(255, 165, 0, 0.05);
+        }
+
+        .upload-zone .icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.6;
+        }
+
+        .upload-zone .text {
+            font-size: 16px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .upload-zone .hint {
+            font-size: 12px;
+            color: var(--text-secondary);
+            opacity: 0.6;
+        }
+
+        .upload-zone input[type="file"] {
+            display: none;
+        }
+
+        .page-header {
+            margin-bottom: 24px;
+        }
+
+        .page-header h1 {
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .page-header .subtitle {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-top: 4px;
+        }
+
+        .stat-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px 20px;
+        }
+
+        .stat-card .label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .stat-card .value {
+            font-size: 24px;
+            font-weight: 700;
+            font-family: 'SF Mono', 'Consolas', 'Courier New', monospace;
+        }
+
+        .stat-card .value.gold { color: var(--accent); }
+
+        .match-link {
+            color: var(--accent);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .match-link:hover {
+            text-decoration: underline;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 16px;
+            }
+            .nav-inner {
+                gap: 16px;
+            }
+            .stat-cards {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            table {
+                font-size: 12px;
+            }
+            thead th, tbody td {
+                padding: 8px 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <div class="nav-inner">
+            <a href="/" class="nav-logo">CS2 <span>Stats</span></a>
+            <div class="nav-links">
+                <a href="/" class="{% if request.path == '/' %}active{% endif %}">比赛</a>
+                <a href="/leaderboard" class="{% if request.path == '/leaderboard' %}active{% endif %}">排行榜</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash-msg {{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>

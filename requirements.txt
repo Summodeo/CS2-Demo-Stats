@@ -1,0 +1,6 @@
+flask>=3.0.0
+demoparser2>=0.40.0
+awpy>=2.0.0a9
+waitress>=2.1.0
+pandas>=2.0.0
+polars>=1.0.0

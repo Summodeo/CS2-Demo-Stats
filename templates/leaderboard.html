@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}CS2 Demo Stats - 排行榜{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>玩家排行榜</h1>
+    <p class="subtitle">综合所有比赛数据，按 Rating 2.0 排名</p>
+</div>
+
+{% if players %}
+<div class="card">
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>排名</th>
+                    <th>玩家</th>
+                    <th>场次</th>
+                    <th>总 K / D / A</th>
+                    <th>平均 ADR</th>
+                    <th>平均 KPR</th>
+                    <th>平均 DPR</th>
+                    <th>平均 KAST</th>
+                    <th>平均 Impact</th>
+                    <th>平均 Rating</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for player in players %}
+                <tr>
+                    <td>
+                        <span class="rank-num {% if loop.index == 1 %}rank-1{% elif loop.index == 2 %}rank-2{% elif loop.index == 3 %}rank-3{% endif %}">
+                            {{ loop.index }}
+                        </span>
+                    </td>
+                    <td class="player-name">{{ player.player_name }}</td>
+                    <td>{{ player.matches_played }}</td>
+                    <td class="ktd">
+                        <span class="k">{{ player.total_kills }}</span>
+                        /
+                        <span class="d">{{ player.total_deaths }}</span>
+                        /
+                        <span class="a">{{ player.total_assists }}</span>
+                    </td>
+                    <td>{{ "%.1f"|format(player.avg_adr) }}</td>
+                    <td>{{ "%.3f"|format(player.avg_kpr) }}</td>
+                    <td>{{ "%.3f"|format(player.avg_dpr) }}</td>
+                    <td>{{ "%.1f"|format(player.avg_kast) }}%</td>
+                    <td>{{ "%.3f"|format(player.avg_impact) }}</td>
+                    <td class="rating-cell {% if player.avg_rating >= 1.0 %}rating-high{% else %}rating-low{% endif %}">
+                        {{ "%.3f"|format(player.avg_rating) }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="card">
+    <div class="empty-state">
+        <h3>暂无排行榜数据</h3>
+        <p>上传并解析至少一个 Demo 后，排行榜将自动生成</p>
+        <a href="/" class="btn btn-primary">去上传 Demo</a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

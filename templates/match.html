@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+{% block title %}比赛详情 - {{ match.map_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <a href="/" style="color: var(--text-secondary); text-decoration: none; font-size: 13px; display: inline-block; margin-bottom: 8px;">← 返回比赛列表</a>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h1 style="margin: 0;">{{ match.map_name }}</h1>
+        <form method="POST" action="{{ url_for('delete_match_route', match_id=match.id) }}"
+              onsubmit="return confirm('确认删除这场比赛吗？\n\n所有 {{ players|length }} 名玩家的数据将被永久删除。')"
+              style="margin: 0;">
+            <button type="submit" class="btn btn-danger">删除比赛</button>
+        </form>
+    </div>
+    <p class="subtitle">{{ match.date }} · {{ players|length }} 名玩家 · {{ match.demo_file_name }}</p>
+</div>
+
+<div class="stat-cards">
+    <div class="stat-card">
+        <div class="label">最高 Rating</div>
+        <div class="value gold">{{ "%.3f"|format(players[0].rating) }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">总击杀</div>
+        <div class="value">{{ players|sum(attribute='kills') }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">总回合</div>
+        <div class="value">{{ players[0].rounds_played if players else 0 }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">玩家数量</div>
+        <div class="value">{{ players|length }}</div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-title">玩家数据统计</div>
+
+    {% if ct_players %}
+    <div style="margin-bottom: 20px;">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+            <span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: #4a7cff;"></span>
+            <span style="font-weight: 600; font-size: 15px;">{{ team_a_label }}</span>
+            <span style="color: var(--text-secondary); font-size: 13px;">{{ ct_players|length }} 名玩家</span>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>玩家</th>
+                        <th>K / D / A</th>
+                        <th>ADR</th>
+                        <th>KPR</th>
+                        <th>DPR</th>
+                        <th>KAST</th>
+                        <th>Impact</th>
+                        <th>Rating</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for player in ct_players %}
+                    <tr>
+                        <td style="color: var(--text-secondary);">{{ loop.index }}</td>
+                        <td class="player-name">{{ player.player_name }}</td>
+                        <td class="ktd">
+                            <span class="k">{{ player.kills }}</span>
+                            /
+                            <span class="d">{{ player.deaths }}</span>
+                            /
+                            <span class="a">{{ player.assists }}</span>
+                        </td>
+                        <td>{{ "%.1f"|format(player.adr) }}</td>
+                        <td>{{ "%.3f"|format(player.kpr) }}</td>
+                        <td>{{ "%.3f"|format(player.dpr) }}</td>
+                        <td>{{ "%.1f"|format(player.kast) }}%</td>
+                        <td>{{ "%.3f"|format(player.impact) }}</td>
+                        <td class="rating-cell {% if player.rating >= 1.0 %}rating-high{% else %}rating-low{% endif %}">
+                            {{ "%.3f"|format(player.rating) }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if t_players %}
+    <div>
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+            <span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: #f59e0b;"></span>
+            <span style="font-weight: 600; font-size: 15px;">{{ team_b_label }}</span>
+            <span style="color: var(--text-secondary); font-size: 13px;">{{ t_players|length }} 名玩家</span>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>玩家</th>
+                        <th>K / D / A</th>
+                        <th>ADR</th>
+                        <th>KPR</th>
+                        <th>DPR</th>
+                        <th>KAST</th>
+                        <th>Impact</th>
+                        <th>Rating</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for player in t_players %}
+                    <tr>
+                        <td style="color: var(--text-secondary);">{{ loop.index }}</td>
+                        <td class="player-name">{{ player.player_name }}</td>
+                        <td class="ktd">
+                            <span class="k">{{ player.kills }}</span>
+                            /
+                            <span class="d">{{ player.deaths }}</span>
+                            /
+                            <span class="a">{{ player.assists }}</span>
+                        </td>
+                        <td>{{ "%.1f"|format(player.adr) }}</td>
+                        <td>{{ "%.3f"|format(player.kpr) }}</td>
+                        <td>{{ "%.3f"|format(player.dpr) }}</td>
+                        <td>{{ "%.1f"|format(player.kast) }}%</td>
+                        <td>{{ "%.3f"|format(player.impact) }}</td>
+                        <td class="rating-cell {% if player.rating >= 1.0 %}rating-high{% else %}rating-low{% endif %}">
+                            {{ "%.3f"|format(player.rating) }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<div class="card">
+    <div class="card-title">KAST 明细</div>
+
+    {% if ct_players %}
+    <div style="margin-bottom: 20px;">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+            <span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: #4a7cff;"></span>
+            <span style="font-weight: 600; font-size: 15px;">{{ team_a_label }}</span>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>玩家</th>
+                        <th>击杀回合</th>
+                        <th>助攻回合</th>
+                        <th>存活回合</th>
+                        <th>补枪回合</th>
+                        <th>多杀回合</th>
+                        <th>KAST</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for player in ct_players %}
+                    <tr>
+                        <td class="player-name">{{ player.player_name }}</td>
+                        <td>{{ player.kill_rounds }}</td>
+                        <td>{{ player.assist_rounds }}</td>
+                        <td>{{ player.survive_rounds }}</td>
+                        <td>{{ player.trade_rounds }}</td>
+                        <td>{{ player.multikill_rounds }}</td>
+                        <td>{{ "%.1f"|format(player.kast) }}%</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if t_players %}
+    <div>
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+            <span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: #f59e0b;"></span>
+            <span style="font-weight: 600; font-size: 15px;">{{ team_b_label }}</span>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>玩家</th>
+                        <th>击杀回合</th>
+                        <th>助攻回合</th>
+                        <th>存活回合</th>
+                        <th>补枪回合</th>
+                        <th>多杀回合</th>
+                        <th>KAST</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for player in t_players %}
+                    <tr>
+                        <td class="player-name">{{ player.player_name }}</td>
+                        <td>{{ player.kill_rounds }}</td>
+                        <td>{{ player.assist_rounds }}</td>
+                        <td>{{ player.survive_rounds }}</td>
+                        <td>{{ player.trade_rounds }}</td>
+                        <td>{{ player.multikill_rounds }}</td>
+                        <td>{{ "%.1f"|format(player.kast) }}%</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
