@@ -1,0 +1,15 @@
+build/
+dist/
+__pycache__/
+*.db
+*.log
+*.spec
+*.pyc
+.trae/
+debug_err.txt
+headers.txt
+match1.html
+response.html
+response2.html
+test_hypothesis.py
+uploads/
