@@ -1,5 +1,5 @@
 # CS2-Demo-Stats
-自用项目，主要是用python html实现记录cs2本地服务器上的bot数据并用社区公开的rating公式计算出来并保存，目前仅搭配https://github.com/ed0ard/CS2-Bot-Improver  使用，或者存在bot资料卡也行。
+自用项目，主要是用python html实现记录cs2本地服务器上的bot数据并用社区公开的rating公式计算出来并保存，搭配https://github.com/ed0ard/CS2-Bot-Improver  使用游玩体验会更好
 
 luzhi.bat主要用于在游戏目录cfg文件创建一个cfg文件并保持每隔一段时间覆写，覆写内容则是使用cstv录制指令，名字则为取当前时间，此举在于保证每个demo名字不相同以避免demo覆盖。
 需要自己编辑luzhi.bat文件改写游戏路径，以文本形式更改。如图<img width="1084" height="153" alt="屏幕截图 2026-06-15 225220" src="https://github.com/user-attachments/assets/6f92a514-d17a-40ae-b6ec-87a923e2b7b3" />
