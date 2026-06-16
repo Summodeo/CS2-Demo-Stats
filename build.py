@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Build script to package CS2 Demo Stats into a standalone executable."""
+"""Build script to package CS2 Demo Stats Desktop App into a standalone executable."""
 import subprocess
 import sys
 import os
@@ -19,6 +19,7 @@ def main():
         sys.executable, '-m', 'PyInstaller',
         '--name=CS2DemoStats',
         '--onefile',
+        '--noconsole',
         '--noconfirm',
         '--clean',
     ]
@@ -45,12 +46,15 @@ def main():
         '--hidden-import=sqlite3',
         '--hidden-import=database',
         '--hidden-import=demo_parser',
+        '--hidden-import=webview',
+        '--hidden-import=webview.platforms',
+        '--hidden-import=webview.platforms.winforms',
         '--collect-all=polars',
         '--collect-all=_polars_runtime_32',
-        'app.py'
+        'desktop_app.py'
     ])
 
-    print("Building CS2 Demo Stats executable...")
+    print("Building CS2 Demo Stats Desktop executable...")
     print(' '.join(cmd))
     subprocess.check_call(cmd)
 
@@ -58,8 +62,7 @@ def main():
     print("Build complete!")
     exe_path = os.path.join(base_dir, 'dist', 'CS2DemoStats.exe')
     print(f"Output: {exe_path}")
-    print("\nCopy CS2DemoStats.exe to any Windows PC to run.")
-    print("Double-click CS2DemoStats.exe to start the server.")
+    print("\nDouble-click CS2DemoStats.exe to start the desktop app.")
     print("=" * 50)
 
 if __name__ == '__main__':
