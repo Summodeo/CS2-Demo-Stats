@@ -1,0 +1,404 @@
+{% extends "base.html" %}
+{% block title %}CS2 Demo Stats - 比赛列表{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>比赛列表</h1>
+    <p class="subtitle">上传并查看你的 CS2 Demo 数据统计</p>
+</div>
+
+<div class="card">
+    <form action="/upload" method="post" enctype="multipart/form-data" id="upload-form">
+        <div class="upload-zone" id="upload-zone">
+            <div class="icon">🎮</div>
+            <div class="text">点击或拖拽 .dem 文件到此处</div>
+            <div class="hint">支持 CS2 游戏 Demo 文件（.dem）</div>
+            <input type="file" name="demo_file" id="demo-file" accept=".dem">
+        </div>
+        <div style="margin-top: 16px; text-align: center;">
+            <button type="submit" class="btn btn-primary" id="upload-btn" disabled>
+                上传并解析
+            </button>
+        </div>
+    </form>
+</div>
+
+<div class="card">
+    <div class="card-title">🔍 文件夹扫描</div>
+    <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 16px;">
+        输入本地文件夹路径，系统将持续扫描其中的 .dem 文件并自动解析。同名文件自动跳过。
+    </p>
+    <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end;">
+        <div style="flex: 2; min-width: 250px;">
+            <label style="display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">文件夹路径</label>
+            <input type="text" id="scan-folder" value=""
+                   style="width: 100%; padding: 10px 14px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 14px; outline: none;"
+                   onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+        </div>
+        <div style="flex: 1; min-width: 150px;">
+            <label style="display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">文件名关键词（可选）</label>
+            <input type="text" id="scan-keyword" value=""
+                   style="width: 100%; padding: 10px 14px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 14px; outline: none;"
+                   onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+        </div>
+        <div style="display: flex; gap: 8px;">
+            <button type="button" class="btn btn-primary" id="save-path-btn" onclick="saveScanPath()" style="background: var(--blue); font-size: 13px; padding: 8px 14px;">
+                保存路径
+            </button>
+            <button type="button" class="btn btn-primary" id="scan-start-btn" onclick="startScan()">
+                开始扫描
+            </button>
+            <button type="button" class="btn btn-danger" id="scan-stop-btn" onclick="stopScan()" style="display: none;">
+                停止
+            </button>
+        </div>
+    </div>
+    <div id="scan-progress" style="display: none; margin-top: 16px;">
+        <div style="background: var(--bg-secondary); border-radius: 8px; padding: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span style="font-size: 13px; color: var(--text-secondary);" id="scan-status-text">扫描中...</span>
+                <span style="font-size: 13px; color: var(--accent); font-weight: 600;" id="scan-progress-text"></span>
+            </div>
+            <div style="background: var(--border); border-radius: 4px; height: 6px; overflow: hidden;">
+                <div id="scan-progress-bar" style="background: var(--accent); height: 100%; border-radius: 4px; transition: width 0.3s; width: 0%;"></div>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 12px; font-size: 12px;">
+                <div>
+                    <div style="color: var(--text-secondary);">总计</div>
+                    <div style="font-weight: 600; font-size: 16px;" id="scan-total">0</div>
+                </div>
+                <div>
+                    <div style="color: var(--text-secondary);">成功</div>
+                    <div style="font-weight: 600; font-size: 16px; color: var(--green);" id="scan-success">0</div>
+                </div>
+                <div>
+                    <div style="color: var(--text-secondary);">跳过(重复)</div>
+                    <div style="font-weight: 600; font-size: 16px; color: var(--blue);" id="scan-skipped">0</div>
+                </div>
+                <div>
+                    <div style="color: var(--text-secondary);">失败</div>
+                    <div style="font-weight: 600; font-size: 16px; color: var(--red);" id="scan-failed">0</div>
+                </div>
+            </div>
+            <div id="scan-current" style="margin-top: 8px; font-size: 12px; color: var(--text-secondary);"></div>
+            <div id="scan-errors" style="margin-top: 8px; font-size: 12px; color: var(--red); display: none; max-height: 100px; overflow-y: auto;"></div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-title" style="display: flex; justify-content: space-between; align-items: center;">
+        <span>已解析的比赛</span>
+        {% if matches %}
+        <form method="POST" action="{{ url_for('delete_all_matches_route') }}"
+              onsubmit="stopScanSync(); return confirm('确认删除所有比赛数据吗？\n\n共 {{ matches|length }} 场比赛，此操作不可恢复。')"
+              style="margin: 0;">
+            <button type="submit" class="btn btn-danger" style="font-size: 12px; padding: 4px 12px;">删除全部</button>
+        </form>
+        {% else %}
+        <form method="POST" action="{{ url_for('delete_all_matches_route') }}"
+              onsubmit="stopScanSync(); return confirm('确认删除所有比赛数据吗？\n\n此操作不可恢复。')"
+              style="margin: 0;">
+            <button type="submit" class="btn btn-danger" style="font-size: 12px; padding: 4px 12px; opacity: 0.5;" disabled>删除全部</button>
+        </form>
+        {% endif %}
+    </div>
+
+    <div id="matches-container">
+        {% if matches %}
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>地图</th>
+                        <th>Demo 文件</th>
+                        <th>解析时间</th>
+                        <th>玩家数</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="matches-tbody">
+                    {% for match in matches %}
+                    <tr>
+                        <td>{{ match.id }}</td>
+                        <td><span class="map-badge">{{ match.map_name }}</span></td>
+                        <td style="color: var(--text-secondary); font-size: 13px;">{{ match.demo_file_name }}</td>
+                        <td style="color: var(--text-secondary); font-size: 13px;">{{ match.date }}</td>
+                        <td>{{ match.player_count }}</td>
+                        <td>
+                            <a href="/match/{{ match.id }}" class="match-link">查看详情 →</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state" id="empty-state">
+            <h3>暂无比赛数据</h3>
+            <p>上传你的 CS2 Demo 文件开始分析</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    // ── Auto-stop scan on page load ──
+    fetch('/api/scan-stop', { method: 'POST' }).catch(() => {});
+
+    // Stop scan on page unload/refresh
+    window.addEventListener('beforeunload', function() {
+        navigator.sendBeacon('/api/scan-stop');
+    });
+
+    // ── Single file upload ──
+    const uploadZone = document.getElementById('upload-zone');
+    const fileInput = document.getElementById('demo-file');
+    const uploadBtn = document.getElementById('upload-btn');
+
+    uploadZone.addEventListener('click', () => fileInput.click());
+
+    uploadZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadZone.style.borderColor = 'var(--accent)';
+        uploadZone.style.background = 'rgba(255, 165, 0, 0.05)';
+    });
+
+    uploadZone.addEventListener('dragleave', () => {
+        uploadZone.style.borderColor = 'var(--border)';
+        uploadZone.style.background = 'transparent';
+    });
+
+    uploadZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadZone.style.borderColor = 'var(--border)';
+        uploadZone.style.background = 'transparent';
+        if (e.dataTransfer.files.length > 0) {
+            fileInput.files = e.dataTransfer.files;
+            updateUploadState();
+        }
+    });
+
+    fileInput.addEventListener('change', updateUploadState);
+
+    function updateUploadState() {
+        const file = fileInput.files[0];
+        if (file) {
+            const textEl = uploadZone.querySelector('.text');
+            textEl.textContent = `已选择: ${file.name}`;
+            uploadBtn.disabled = false;
+        } else {
+            uploadZone.querySelector('.text').textContent = '点击或拖拽 .dem 文件到此处';
+            uploadBtn.disabled = true;
+        }
+    }
+
+    document.getElementById('upload-form').addEventListener('submit', function() {
+        stopScanSync();
+        uploadBtn.disabled = true;
+        uploadBtn.textContent = '解析中...';
+    });
+
+    // ── Folder scanning ──
+    let scanPollTimer = null;
+    let lastKnownMatchCount = {{ matches|length }};
+
+    // Restore saved scan path/keyword from backend
+    (function() {
+        fetch('/api/scan-config')
+            .then(r => r.json())
+            .then(config => {
+                document.getElementById('scan-folder').value = config.folder || '';
+                document.getElementById('scan-keyword').value = config.keyword || '';
+            })
+            .catch(() => {});
+    })();
+
+    function saveScanPath() {
+        const folder = document.getElementById('scan-folder').value.trim();
+        const keyword = document.getElementById('scan-keyword').value.trim();
+        fetch('/api/scan-config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ folder, keyword })
+        })
+        .then(r => r.json())
+        .then(data => {
+            const btn = document.getElementById('save-path-btn');
+            btn.textContent = '已保存 ✓';
+            btn.style.background = 'var(--green)';
+            setTimeout(() => {
+                btn.textContent = '保存路径';
+                btn.style.background = 'var(--blue)';
+            }, 1500);
+        })
+        .catch(() => {
+            alert('保存失败');
+        });
+    }
+
+    function startScan() {
+        const folder = document.getElementById('scan-folder').value.trim();
+        const keyword = document.getElementById('scan-keyword').value.trim();
+
+        if (!folder) {
+            alert('请输入文件夹路径');
+            return;
+        }
+
+        document.getElementById('scan-start-btn').disabled = true;
+        document.getElementById('scan-stop-btn').style.display = 'inline-flex';
+        document.getElementById('scan-progress').style.display = 'block';
+
+        fetch('/api/scan-folder', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ folder, keyword })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.ok) {
+                pollScanStatus();
+            } else {
+                alert(data.message || '启动扫描失败');
+                resetScanUI();
+            }
+        })
+        .catch(() => {
+            alert('请求失败');
+            resetScanUI();
+        });
+    }
+
+    function stopScan() {
+        fetch('/api/scan-stop', { method: 'POST' })
+            .then(() => {
+                document.getElementById('scan-stop-btn').style.display = 'none';
+            });
+    }
+
+    // Synchronous stop using sendBeacon (works even during page unload)
+    function stopScanSync() {
+        navigator.sendBeacon('/api/scan-stop');
+        if (scanPollTimer) {
+            clearInterval(scanPollTimer);
+            scanPollTimer = null;
+        }
+        resetScanUI();
+    }
+
+    // Stop scan before any navigation
+    document.addEventListener('click', function(e) {
+        const link = e.target.closest('a');
+        if (link && link.href) {
+            stopScanSync();
+        }
+    });
+
+    function pollScanStatus() {
+        if (scanPollTimer) clearInterval(scanPollTimer);
+        scanPollTimer = setInterval(() => {
+            fetch('/api/scan-status')
+                .then(r => r.json())
+                .then(state => {
+                    updateScanUI(state);
+                    if (!state.running) {
+                        clearInterval(scanPollTimer);
+                        scanPollTimer = null;
+                        resetScanUI();
+                        refreshMatches();
+                    }
+                })
+                .catch(() => {
+                    clearInterval(scanPollTimer);
+                    scanPollTimer = null;
+                    resetScanUI();
+                });
+        }, 5000);
+    }
+
+    function updateScanUI(state) {
+        document.getElementById('scan-total').textContent = state.total;
+        document.getElementById('scan-success').textContent = state.success;
+        document.getElementById('scan-skipped').textContent = state.skipped;
+        document.getElementById('scan-failed').textContent = state.failed;
+
+        const processed = state.success + state.skipped + state.failed;
+        const pct = state.total > 0 ? Math.round(processed / state.total * 100) : 0;
+        document.getElementById('scan-progress-bar').style.width = pct + '%';
+        document.getElementById('scan-progress-text').textContent = pct + '%';
+
+        if (state.running) {
+            document.getElementById('scan-status-text').textContent = '持续扫描中...';
+        } else {
+            document.getElementById('scan-status-text').textContent = '扫描已停止';
+        }
+
+        if (state.current_file) {
+            document.getElementById('scan-current').textContent = '正在处理: ' + state.current_file;
+        } else if (!state.running) {
+            document.getElementById('scan-current').textContent = '';
+        }
+
+        if (state.errors && state.errors.length > 0) {
+            const el = document.getElementById('scan-errors');
+            el.style.display = 'block';
+            el.innerHTML = state.errors.map(e => `<div>${e}</div>`).join('');
+        }
+
+        // Refresh matches list if new matches were parsed
+        if (state.success > 0) {
+            refreshMatches();
+        }
+    }
+
+    function refreshMatches() {
+        fetch('/api/matches')
+            .then(r => r.json())
+            .then(matches => {
+                if (matches.length !== lastKnownMatchCount) {
+                    lastKnownMatchCount = matches.length;
+                    const tbody = document.getElementById('matches-tbody');
+                    const container = document.getElementById('matches-container');
+                    const emptyState = document.getElementById('empty-state');
+
+                    if (matches.length === 0) {
+                        if (tbody) tbody.closest('.table-wrap').style.display = 'none';
+                        if (!emptyState) {
+                            container.innerHTML = '<div class="empty-state" id="empty-state"><h3>暂无比赛数据</h3><p>上传你的 CS2 Demo 文件开始分析</p></div>';
+                        }
+                        return;
+                    }
+
+                    // Build table HTML
+                    let html = '';
+                    matches.forEach(m => {
+                        html += `<tr>
+                            <td>${m.id}</td>
+                            <td><span class="map-badge">${m.map_name}</span></td>
+                            <td style="color: var(--text-secondary); font-size: 13px;">${m.demo_file_name}</td>
+                            <td style="color: var(--text-secondary); font-size: 13px;">${m.date}</td>
+                            <td>${m.player_count}</td>
+                            <td><a href="/match/${m.id}" class="match-link">查看详情 →</a></td>
+                        </tr>`;
+                    });
+
+                    if (tbody) {
+                        tbody.innerHTML = html;
+                    } else {
+                        container.innerHTML = `<div class="table-wrap"><table><thead><tr>
+                            <th>#</th><th>地图</th><th>Demo 文件</th><th>解析时间</th><th>玩家数</th><th>操作</th>
+                        </tr></thead><tbody id="matches-tbody">${html}</tbody></table></div>`;
+                    }
+                }
+            })
+            .catch(() => {});
+    }
+
+    function resetScanUI() {
+        document.getElementById('scan-start-btn').disabled = false;
+        document.getElementById('scan-stop-btn').style.display = 'none';
+    }
+</script>
+{% endblock %}

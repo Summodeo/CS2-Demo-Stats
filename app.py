@@ -1,6 +1,7 @@
 import os
 import sys
 import uuid
+import json
 import webbrowser
 import threading
 import time
@@ -24,15 +25,9 @@ app = Flask(__name__,
             static_folder=os.path.join(_INTERNAL_DIR, 'static'))
 app.secret_key = 'cs2-demo-stats-secret-key'
 
-# Log errors to file when running as exe
-if getattr(sys, 'frozen', False):
-    import logging
-    log_path = os.path.join(BASE_DIR, 'error.log')
-    logging.basicConfig(filename=log_path, level=logging.ERROR,
-                        format='%(asctime)s %(levelname)s %(message)s')
-    app.logger.addHandler(logging.FileHandler(log_path))
-
-UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
+# Use system temp directory for uploads (no folder created in app directory)
+import tempfile
+UPLOAD_FOLDER = os.path.join(tempfile.gettempdir(), 'cs2_demo_stats_uploads')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024 * 1024
@@ -177,6 +172,44 @@ def scan_stop():
     """Request to stop the current scan."""
     global scan_state
     scan_state['stop_requested'] = True
+    return jsonify({'ok': True})
+
+
+# ── Scan path persistence ──
+_CONFIG_PATH = os.path.join(BASE_DIR, 'scan_config.json')
+
+def _load_scan_config():
+    try:
+        with open(_CONFIG_PATH, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+def _save_scan_config(config):
+    try:
+        with open(_CONFIG_PATH, 'w', encoding='utf-8') as f:
+            json.dump(config, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
+
+
+@app.route('/api/scan-config', methods=['GET'])
+def get_scan_config():
+    """Get saved scan folder and keyword."""
+    config = _load_scan_config()
+    return jsonify({
+        'folder': config.get('folder', r'H:\Steam\steamapps\common\Counter-Strike Global Offensive\game\csgo\gotv'),
+        'keyword': config.get('keyword', '2026')
+    })
+
+
+@app.route('/api/scan-config', methods=['POST'])
+def save_scan_config():
+    """Save scan folder and keyword."""
+    data = request.get_json(silent=True) or {}
+    folder = data.get('folder', '').strip()
+    keyword = data.get('keyword', '').strip()
+    _save_scan_config({'folder': folder, 'keyword': keyword})
     return jsonify({'ok': True})
 
 
@@ -368,29 +401,32 @@ if __name__ == '__main__':
     url = f'http://127.0.0.1:{port}'
     print(f"CS2 Demo 数据统计系统启动于 {url}")
 
-    def _open_browser():
-        import time
-        time.sleep(1.5)
-        webbrowser.open(url)
-
-    threading.Thread(target=_open_browser, daemon=True).start()
+    # Only auto-open browser in web mode (when not running as desktop app)
+    import os as _os
+    if not _os.environ.get('CS2_DESKTOP_MODE'):
+        def _open_browser():
+            import time
+            time.sleep(1.5)
+            webbrowser.open(url)
+        threading.Thread(target=_open_browser, daemon=True).start()
 
     from waitress import serve
     serve(app, host='0.0.0.0', port=port, max_request_body_size=10737418240)
 else:
-    # Also init when running as PyInstaller bundle
+    # Also init when running as PyInstaller bundle or imported as module
     init_db()
 
-    # Start the server when running as PyInstaller bundle
-    port = int(os.environ.get('PORT', 5000))
-    url = f'http://127.0.0.1:{port}'
+    # Only auto-start server when NOT in desktop mode
+    # (desktop_app.py handles server startup itself)
+    if not os.environ.get('CS2_DESKTOP_MODE'):
+        port = int(os.environ.get('PORT', 5000))
+        url = f'http://127.0.0.1:{port}'
 
-    def _open_browser():
-        import time
-        time.sleep(1.5)
-        webbrowser.open(url)
+        def _open_browser():
+            import time
+            time.sleep(1.5)
+            webbrowser.open(url)
+        threading.Thread(target=_open_browser, daemon=True).start()
 
-    threading.Thread(target=_open_browser, daemon=True).start()
-
-    from waitress import serve
-    serve(app, host='0.0.0.0', port=port, max_request_body_size=10737418240)
+        from waitress import serve
+        serve(app, host='0.0.0.0', port=port, max_request_body_size=10737418240)
