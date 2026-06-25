@@ -7,6 +7,9 @@ server.cfg文件则放入游戏cfg文件夹覆盖，以保证cstv处于活跃状
 start_cs2.bat文件同样需要修改游戏路径，方法同上。主要用于方便的启动游戏，或者可以自己在cs2启动项添加：-insecure +exec server.cfg  -disable_workshop_command_filtering                            
 使用方式：运行luzhi.bat，使用start_cs2.bat进入或者启动项进入游戏主界面后选择练习或者创意工坊地图，选择竞技模式，安装了bot-improve的话，需要移除所有bot，然后自己输入指令添加完bot输入exec luzhi ，就会开始录制demo，demo文件自动保存在csgo文件夹里的gotv文件夹里面，进入程序网页后，把gotv文件路径放进扫描路径里，关键字可取可不取，点击开始扫描，就会持续监控demo文件，自动上传到网页，直到点击停止或者进行其他操作。目前仅支持有steam 64位id存在的bot，其余会导致数据统计混乱。    
 
+
+将botsteamid资料卡压缩包里的文件全部粘贴到csgo文件夹覆盖即可，若想正常游玩请删除gameinfo.gi文件使用线上gameinfo.gi文件。
+
 本程序不会导致vac因为已经开启了-insecure，不会在有vac保护的服务器下进行。
 
 v1.1.0：BotHider里文件直接在放在csgo文件夹里覆盖。
