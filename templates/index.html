@@ -25,25 +25,32 @@
 
 <div class="card">
     <div class="card-title">🔍 文件夹扫描</div>
-    <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 16px;">
-        输入本地文件夹路径，系统将持续扫描其中的 .dem 文件并自动解析。同名文件自动跳过。
-    </p>
     <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end;">
         <div style="flex: 2; min-width: 250px;">
             <label style="display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">文件夹路径</label>
-            <input type="text" id="scan-folder" value="H:\Steam\steamapps\common\Counter-Strike Global Offensive\game\csgo\gotv"
+            <input type="text" id="scan-folder" value=""
                    style="width: 100%; padding: 10px 14px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 14px; outline: none;"
                    onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
         </div>
         <div style="flex: 1; min-width: 150px;">
             <label style="display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">文件名关键词（可选）</label>
-            <input type="text" id="scan-keyword" value="2026"
+            <input type="text" id="scan-keyword" value=""
                    style="width: 100%; padding: 10px 14px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 14px; outline: none;"
                    onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
         </div>
-        <div style="display: flex; gap: 8px;">
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end;">
+            <label style="display: flex; align-items: center; gap: 4px; font-size: 13px; color: var(--text-secondary); cursor: pointer; padding-bottom: 10px;">
+                <input type="checkbox" id="scan-recursive" checked style="cursor: pointer;">
+                <span>包含子目录</span>
+            </label>
+            <button type="button" class="btn btn-primary" id="auto-detect-btn" onclick="autoDetectPath()" style="background: var(--green); font-size: 13px; padding: 8px 14px;">
+                自动检测
+            </button>
+            <button type="button" class="btn btn-primary" id="save-path-btn" onclick="saveScanPath()" style="background: var(--blue); font-size: 13px; padding: 8px 14px;">
+                保存路径
+            </button>
             <button type="button" class="btn btn-primary" id="scan-start-btn" onclick="startScan()">
-                开始扫描
+                开始监听
             </button>
             <button type="button" class="btn btn-danger" id="scan-stop-btn" onclick="stopScan()" style="display: none;">
                 停止
@@ -51,86 +58,118 @@
         </div>
     </div>
     <div id="scan-progress" style="display: none; margin-top: 16px;">
-        <div style="background: var(--bg-secondary); border-radius: 8px; padding: 16px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <span style="font-size: 13px; color: var(--text-secondary);" id="scan-status-text">扫描中...</span>
-                <span style="font-size: 13px; color: var(--accent); font-weight: 600;" id="scan-progress-text"></span>
+        <div style="background: var(--bg-secondary); border-radius: 8px; padding: 24px 16px; text-align: center;">
+            <div style="display: inline-flex; align-items: center; gap: 10px;">
+                <span id="scan-spinner" style="display: inline-block; width: 14px; height: 14px; border: 2px solid var(--accent); border-top-color: transparent; border-radius: 50%; animation: scan-spin 0.8s linear infinite;"></span>
+                <span id="scan-status-text" style="font-size: 15px; color: var(--text-primary); font-weight: 600;">扫描中</span>
             </div>
-            <div style="background: var(--border); border-radius: 4px; height: 6px; overflow: hidden;">
-                <div id="scan-progress-bar" style="background: var(--accent); height: 100%; border-radius: 4px; transition: width 0.3s; width: 0%;"></div>
-            </div>
-            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 12px; font-size: 12px;">
-                <div>
-                    <div style="color: var(--text-secondary);">总计</div>
-                    <div style="font-weight: 600; font-size: 16px;" id="scan-total">0</div>
-                </div>
-                <div>
-                    <div style="color: var(--text-secondary);">成功</div>
-                    <div style="font-weight: 600; font-size: 16px; color: var(--green);" id="scan-success">0</div>
-                </div>
-                <div>
-                    <div style="color: var(--text-secondary);">跳过(重复)</div>
-                    <div style="font-weight: 600; font-size: 16px; color: var(--blue);" id="scan-skipped">0</div>
-                </div>
-                <div>
-                    <div style="color: var(--text-secondary);">失败</div>
-                    <div style="font-weight: 600; font-size: 16px; color: var(--red);" id="scan-failed">0</div>
-                </div>
-            </div>
-            <div id="scan-current" style="margin-top: 8px; font-size: 12px; color: var(--text-secondary);"></div>
-            <div id="scan-errors" style="margin-top: 8px; font-size: 12px; color: var(--red); display: none; max-height: 100px; overflow-y: auto;"></div>
+            <div id="scan-current" style="margin-top: 10px; font-size: 12px; color: var(--text-secondary);"></div>
+            <div id="scan-errors" style="margin-top: 10px; font-size: 12px; color: var(--red); display: none; max-height: 100px; overflow-y: auto;"></div>
         </div>
     </div>
 </div>
+<style>
+@keyframes scan-spin { to { transform: rotate(360deg); } }
+</style>
 
 <div class="card">
     <div class="card-title" style="display: flex; justify-content: space-between; align-items: center;">
         <span>已解析的比赛</span>
-        {% if matches %}
-        <form method="POST" action="{{ url_for('delete_all_matches_route') }}"
-              onsubmit="stopScanSync(); return confirm('确认删除所有比赛数据吗？\n\n共 {{ matches|length }} 场比赛，此操作不可恢复。')"
-              style="margin: 0;">
-            <button type="submit" class="btn btn-danger" style="font-size: 12px; padding: 4px 12px;">删除全部</button>
-        </form>
-        {% else %}
-        <form method="POST" action="{{ url_for('delete_all_matches_route') }}"
-              onsubmit="stopScanSync(); return confirm('确认删除所有比赛数据吗？\n\n此操作不可恢复。')"
-              style="margin: 0;">
-            <button type="submit" class="btn btn-danger" style="font-size: 12px; padding: 4px 12px; opacity: 0.5;" disabled>删除全部</button>
-        </form>
-        {% endif %}
+        <div style="display: flex; gap: 8px;">
+            <a href="/series" class="btn btn-primary" style="font-size: 12px; padding: 4px 12px; text-decoration: none; display: inline-flex; align-items: center;">系列赛管理</a>
+            {% if matches %}
+            <button type="button" class="btn btn-primary" id="create-series-btn" onclick="toggleSeriesForm()" style="font-size: 12px; padding: 4px 12px; background: var(--blue);">
+                创建系列赛
+            </button>
+            <form method="POST" action="{{ url_for('delete_all_matches_route') }}"
+                  onsubmit="stopScanSync(); return confirm('确认删除所有比赛数据吗？\n\n共 {{ matches|length }} 场比赛，此操作不可恢复。')"
+                  style="margin: 0;">
+                <button type="submit" class="btn btn-danger" style="font-size: 12px; padding: 4px 12px;">删除全部</button>
+            </form>
+            {% else %}
+            <form method="POST" action="{{ url_for('delete_all_matches_route') }}"
+                  onsubmit="stopScanSync(); return confirm('确认删除所有比赛数据吗？\n\n此操作不可恢复。')"
+                  style="margin: 0;">
+                <button type="submit" class="btn btn-danger" style="font-size: 12px; padding: 4px 12px; opacity: 0.5;" disabled>删除全部</button>
+            </form>
+            {% endif %}
+        </div>
     </div>
+
+    {% if matches %}
+    <div id="series-form" style="display: none; margin-bottom: 16px; padding: 16px; background: var(--bg-secondary); border-radius: 8px;">
+        <form method="POST" action="/series/create">
+            <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px;">
+                <input type="text" name="name" placeholder="系列赛名称（如：BO3 训练赛）" required
+                       style="flex: 1; min-width: 200px; padding: 8px 12px; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary); font-size: 14px;">
+                <select name="bo_count" style="padding: 8px 12px; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary); font-size: 14px;">
+                    <option value="1">BO1</option>
+                    <option value="3">BO3</option>
+                    <option value="5">BO5</option>
+                    <option value="7">BO7</option>
+                </select>
+                <button type="submit" class="btn btn-primary" style="font-size: 13px; padding: 8px 16px;">确认创建</button>
+                <button type="button" class="btn btn-danger" onclick="toggleSeriesForm()" style="font-size: 13px; padding: 8px 16px;">取消</button>
+            </div>
+            <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">勾选要纳入系列赛的比赛：</div>
+            <div style="max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px;">
+                {% for match in matches %}
+                <label style="display: flex; align-items: center; gap: 8px; padding: 6px 8px; background: var(--bg-primary); border-radius: 4px; cursor: pointer; font-size: 13px;">
+                    <input type="checkbox" name="match_ids" value="{{ match.id }}">
+                    <span class="map-badge" style="font-size: 11px;">{{ match.map_name }}</span>
+                    <span style="color: var(--text-secondary);">{{ match.date }}</span>
+                    <span style="color: var(--text-secondary); font-size: 12px;">{{ match.demo_file_name }}</span>
+                </label>
+                {% endfor %}
+            </div>
+        </form>
+    </div>
+    {% endif %}
 
     <div id="matches-container">
         {% if matches %}
-        <div class="table-wrap">
-            <table>
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>地图</th>
-                        <th>Demo 文件</th>
-                        <th>解析时间</th>
-                        <th>玩家数</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>
-                <tbody id="matches-tbody">
-                    {% for match in matches %}
-                    <tr>
-                        <td>{{ match.id }}</td>
-                        <td><span class="map-badge">{{ match.map_name }}</span></td>
-                        <td style="color: var(--text-secondary); font-size: 13px;">{{ match.demo_file_name }}</td>
-                        <td style="color: var(--text-secondary); font-size: 13px;">{{ match.date }}</td>
-                        <td>{{ match.player_count }}</td>
-                        <td>
-                            <a href="/match/{{ match.id }}" class="match-link">查看详情 →</a>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+        <form id="batch-delete-form" method="POST" action="{{ url_for('batch_delete_matches') }}"
+              onsubmit="stopScanSync(); return confirmBatchDelete()">
+            <div style="display: flex; gap: 8px; margin-bottom: 12px; align-items: center;">
+                <label style="display: flex; align-items: center; gap: 4px; font-size: 13px; cursor: pointer;">
+                    <input type="checkbox" id="select-all-cb" onchange="toggleSelectAll(this)" style="cursor: pointer;">
+                    <span>全选</span>
+                </label>
+                <button type="submit" class="btn btn-danger" id="batch-delete-btn" style="font-size: 12px; padding: 4px 12px; display: none;">
+                    批量删除 (<span id="batch-count">0</span>)
+                </button>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 32px;"></th>
+                            <th>#</th>
+                            <th>地图</th>
+                            <th>Demo 文件</th>
+                            <th>解析时间</th>
+                            <th>玩家数</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="matches-tbody">
+                        {% for match in matches %}
+                        <tr>
+                            <td><input type="checkbox" class="match-cb" name="match_ids" value="{{ match.id }}" onchange="updateBatchCount()" style="cursor: pointer;"></td>
+                            <td>{{ match.id }}</td>
+                            <td><span class="map-badge">{{ match.map_name }}</span></td>
+                            <td style="color: var(--text-secondary); font-size: 13px;">{{ match.demo_file_name }}</td>
+                            <td style="color: var(--text-secondary); font-size: 13px;">{{ match.date }}</td>
+                            <td>{{ match.player_count }}</td>
+                            <td>
+                                <a href="/match/{{ match.id }}" class="match-link">查看详情 →</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </form>
         {% else %}
         <div class="empty-state" id="empty-state">
             <h3>暂无比赛数据</h3>
@@ -201,9 +240,80 @@
     let scanPollTimer = null;
     let lastKnownMatchCount = {{ matches|length }};
 
+    // Restore saved config from backend (with auto-detect)
+    (function() {
+        fetch('/api/config')
+            .then(r => r.json())
+            .then(config => {
+                const folderInput = document.getElementById('scan-folder');
+                const keywordInput = document.getElementById('scan-keyword');
+                // 优先使用已保存路径，否则用自动检测路径
+                if (config.cs2_demo_folder) {
+                    folderInput.value = config.cs2_demo_folder;
+                } else if (config.detected_folder) {
+                    folderInput.value = config.detected_folder;
+                }
+                keywordInput.value = config.scan_keyword || '2026';
+            })
+            .catch(() => {});
+    })();
+
+    function autoDetectPath() {
+        const btn = document.getElementById('auto-detect-btn');
+        btn.textContent = '检测中...';
+        btn.disabled = true;
+        fetch('/api/detect-cs2-path')
+            .then(r => r.json())
+            .then(data => {
+                if (data.ok) {
+                    document.getElementById('scan-folder').value = data.path;
+                    btn.textContent = '已检测 ✓';
+                    btn.style.background = 'var(--green)';
+                    setTimeout(() => {
+                        btn.textContent = '自动检测';
+                        btn.style.background = 'var(--green)';
+                        btn.disabled = false;
+                    }, 1500);
+                } else {
+                    alert(data.message || '未检测到CS2路径');
+                    btn.textContent = '自动检测';
+                    btn.disabled = false;
+                }
+            })
+            .catch(() => {
+                alert('检测失败');
+                btn.textContent = '自动检测';
+                btn.disabled = false;
+            });
+    }
+
+    function saveScanPath() {
+        const folder = document.getElementById('scan-folder').value.trim();
+        const keyword = document.getElementById('scan-keyword').value.trim();
+        fetch('/api/config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ cs2_demo_folder: folder, scan_keyword: keyword })
+        })
+        .then(r => r.json())
+        .then(data => {
+            const btn = document.getElementById('save-path-btn');
+            btn.textContent = '已保存 ✓';
+            btn.style.background = 'var(--green)';
+            setTimeout(() => {
+                btn.textContent = '保存路径';
+                btn.style.background = 'var(--blue)';
+            }, 1500);
+        })
+        .catch(() => {
+            alert('保存失败');
+        });
+    }
+
     function startScan() {
         const folder = document.getElementById('scan-folder').value.trim();
         const keyword = document.getElementById('scan-keyword').value.trim();
+        const recursive = document.getElementById('scan-recursive').checked;
 
         if (!folder) {
             alert('请输入文件夹路径');
@@ -217,7 +327,7 @@
         fetch('/api/scan-folder', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ folder, keyword })
+            body: JSON.stringify({ folder, keyword, recursive })
         })
         .then(r => r.json())
         .then(data => {
@@ -282,20 +392,15 @@
     }
 
     function updateScanUI(state) {
-        document.getElementById('scan-total').textContent = state.total;
-        document.getElementById('scan-success').textContent = state.success;
-        document.getElementById('scan-skipped').textContent = state.skipped;
-        document.getElementById('scan-failed').textContent = state.failed;
-
-        const processed = state.success + state.skipped + state.failed;
-        const pct = state.total > 0 ? Math.round(processed / state.total * 100) : 0;
-        document.getElementById('scan-progress-bar').style.width = pct + '%';
-        document.getElementById('scan-progress-text').textContent = pct + '%';
+        const spinner = document.getElementById('scan-spinner');
+        const statusText = document.getElementById('scan-status-text');
 
         if (state.running) {
-            document.getElementById('scan-status-text').textContent = '持续扫描中...';
+            statusText.textContent = '扫描中';
+            if (spinner) spinner.style.display = 'inline-block';
         } else {
-            document.getElementById('scan-status-text').textContent = '扫描已停止';
+            statusText.textContent = '扫描已停止';
+            if (spinner) spinner.style.display = 'none';
         }
 
         if (state.current_file) {
@@ -362,6 +467,46 @@
     function resetScanUI() {
         document.getElementById('scan-start-btn').disabled = false;
         document.getElementById('scan-stop-btn').style.display = 'none';
+    }
+
+    function toggleSeriesForm() {
+        const form = document.getElementById('series-form');
+        if (form) {
+            form.style.display = form.style.display === 'none' ? 'block' : 'none';
+        }
+    }
+
+    // ── Batch delete ──
+    function toggleSelectAll(master) {
+        const cbs = document.querySelectorAll('.match-cb');
+        cbs.forEach(cb => cb.checked = master.checked);
+        updateBatchCount();
+    }
+
+    function updateBatchCount() {
+        const cbs = document.querySelectorAll('.match-cb:checked');
+        const count = cbs.length;
+        const btn = document.getElementById('batch-delete-btn');
+        const countSpan = document.getElementById('batch-count');
+        if (btn) btn.style.display = count > 0 ? 'inline-flex' : 'none';
+        if (countSpan) countSpan.textContent = count;
+
+        // Update select-all checkbox state
+        const allCbs = document.querySelectorAll('.match-cb');
+        const selectAll = document.getElementById('select-all-cb');
+        if (selectAll && allCbs.length > 0) {
+            selectAll.checked = count === allCbs.length;
+            selectAll.indeterminate = count > 0 && count < allCbs.length;
+        }
+    }
+
+    function confirmBatchDelete() {
+        const count = document.querySelectorAll('.match-cb:checked').length;
+        if (count === 0) {
+            alert('请先勾选要删除的比赛');
+            return false;
+        }
+        return confirm(`确认删除选中的 ${count} 场比赛吗？\n\n此操作不可恢复。`);
     }
 </script>
 {% endblock %}

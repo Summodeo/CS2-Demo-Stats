@@ -49,6 +49,9 @@ def main():
         '--hidden-import=webview',
         '--hidden-import=webview.platforms',
         '--hidden-import=webview.platforms.winforms',
+        '--hidden-import=watchdog',
+        '--hidden-import=watchdog.observers',
+        '--hidden-import=watchdog.events',
         '--collect-all=polars',
         '--collect-all=_polars_runtime_32',
         'desktop_app.py'

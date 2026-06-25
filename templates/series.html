@@ -1,0 +1,251 @@
+{% extends "base.html" %}
+{% block title %}{% if mode == 'detail' %}{{ series.name }}{% else %}系列赛管理{% endif %}{% endblock %}
+
+{% block content %}
+{% if mode == 'list' %}
+<div class="page-header">
+    <a href="/" style="color: var(--text-secondary); text-decoration: none; font-size: 13px; display: inline-block; margin-bottom: 8px;">← 返回首页</a>
+    <h1>系列赛管理</h1>
+    <p class="subtitle">将多场比赛组合为 BO1/BO3/BO5 系列赛，查看综合数据</p>
+</div>
+
+<div class="card">
+    <div class="card-title">所有系列赛</div>
+    {% if series_list %}
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>名称</th>
+                    <th>赛制</th>
+                    <th>比赛数</th>
+                    <th>创建时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in series_list %}
+                <tr>
+                    <td>{{ s.id }}</td>
+                    <td><span class="map-badge">{{ s.name }}</span></td>
+                    <td>BO{{ s.bo_count }}</td>
+                    <td>{{ s.match_count }}</td>
+                    <td style="color: var(--text-secondary); font-size: 13px;">{{ s.created_at }}</td>
+                    <td>
+                        <a href="/series/{{ s.id }}" class="match-link">查看详情 →</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <h3>暂无系列赛</h3>
+        <p>在首页勾选多场比赛后点击"创建系列赛"</p>
+    </div>
+    {% endif %}
+</div>
+
+{% elif mode == 'detail' %}
+<div class="page-header">
+    <a href="/series" style="color: var(--text-secondary); text-decoration: none; font-size: 13px; display: inline-block; margin-bottom: 8px;">← 返回系列赛列表</a>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h1 style="margin: 0;">{{ series.name }}</h1>
+        <form method="POST" action="{{ url_for('series_delete', series_id=series.id) }}"
+              onsubmit="return confirm('确认删除系列赛 "{{ series.name }}" 吗？\n\n关联的比赛不会被删除。')"
+              style="margin: 0;">
+            <button type="submit" class="btn btn-danger">删除系列赛</button>
+        </form>
+    </div>
+    <p class="subtitle">BO{{ series.bo_count }} · {{ matches|length }} 场比赛 · {{ series.created_at }}</p>
+</div>
+
+{% if team_a_total > 0 or team_b_total > 0 %}
+<div class="card" style="text-align: center; padding: 24px;">
+    <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">系列赛总比分</div>
+    <div style="display: flex; justify-content: center; align-items: center; gap: 40px;">
+        <div style="text-align: center;">
+            <div style="font-size: 14px; color: var(--text-secondary); margin-bottom: 4px;">{{ team_a_label }}</div>
+            <div style="font-size: 48px; font-weight: 700; color: #4a7cff;">{{ team_a_total }}</div>
+        </div>
+        <div style="font-size: 24px; color: var(--text-secondary); font-weight: 300;">:</div>
+        <div style="text-align: center;">
+            <div style="font-size: 14px; color: var(--text-secondary); margin-bottom: 4px;">{{ team_b_label }}</div>
+            <div style="font-size: 48px; font-weight: 700; color: #f59e0b;">{{ team_b_total }}</div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="card">
+    <div class="card-title">包含的比赛</div>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>地图</th>
+                    <th>比分</th>
+                    <th>胜者</th>
+                    <th>时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in matches %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td><span class="map-badge">{{ m.map_name }}</span></td>
+                    <td>
+                        {% if m.team_a_score is defined and (m.team_a_score > 0 or m.team_b_score > 0) %}
+                        <span style="color: #4a7cff; font-weight: 600;">{{ m.team_a_score }}</span>
+                        :
+                        <span style="color: #f59e0b; font-weight: 600;">{{ m.team_b_score }}</span>
+                        {% else %}
+                        <span style="color: var(--text-secondary);">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if m.winner_team == m.team_a_number and m.winner_team != 0 %}
+                        <span style="color: #4a7cff; font-weight: 600;">{{ team_a_label }}</span>
+                        {% elif m.winner_team == m.team_b_number and m.winner_team != 0 %}
+                        <span style="color: #f59e0b; font-weight: 600;">{{ team_b_label }}</span>
+                        {% else %}
+                        <span style="color: var(--text-secondary);">-</span>
+                        {% endif %}
+                    </td>
+                    <td style="color: var(--text-secondary); font-size: 13px;">{{ m.date }}</td>
+                    <td><a href="/match/{{ m.id }}" class="match-link">查看 →</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="stat-cards">
+    <div class="stat-card">
+        <div class="label">最高 Rating</div>
+        <div class="value gold">{{ "%.3f"|format(players[0].rating) if players else 0 }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">总击杀</div>
+        <div class="value">{{ players|sum(attribute='kills') if players else 0 }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">总回合</div>
+        <div class="value">{{ players[0].rounds_played if players else 0 }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">总比赛</div>
+        <div class="value">{{ matches|length }}</div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-title">综合数据统计</div>
+
+    {% if ct_players %}
+    <div style="margin-bottom: 20px;">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+            <span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: #4a7cff;"></span>
+            <span style="font-weight: 600; font-size: 15px;">{{ team_a_label }}</span>
+            <span style="color: var(--text-secondary); font-size: 13px;">{{ ct_players|length }} 名玩家</span>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>玩家</th>
+                        <th>场次</th>
+                        <th>K / D / A</th>
+                        <th>ADR</th>
+                        <th>KPR</th>
+                        <th>DPR</th>
+                        <th>Impact</th>
+                        <th>Rating</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for player in ct_players %}
+                    <tr>
+                        <td style="color: var(--text-secondary);">{{ loop.index }}</td>
+                        <td class="player-name">{{ player.player_name }}</td>
+                        <td>{{ player.matches_played }}</td>
+                        <td class="ktd">
+                            <span class="k">{{ player.kills }}</span>
+                            /
+                            <span class="d">{{ player.deaths }}</span>
+                            /
+                            <span class="a">{{ player.assists }}</span>
+                        </td>
+                        <td>{{ "%.1f"|format(player.adr) }}</td>
+                        <td>{{ "%.3f"|format(player.kpr) }}</td>
+                        <td>{{ "%.3f"|format(player.dpr) }}</td>
+                        <td>{{ "%.3f"|format(player.impact) }}</td>
+                        <td class="rating-cell {% if player.rating >= 1.0 %}rating-high{% else %}rating-low{% endif %}">
+                            {{ "%.3f"|format(player.rating) }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if t_players %}
+    <div>
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+            <span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: #f59e0b;"></span>
+            <span style="font-weight: 600; font-size: 15px;">{{ team_b_label }}</span>
+            <span style="color: var(--text-secondary); font-size: 13px;">{{ t_players|length }} 名玩家</span>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>玩家</th>
+                        <th>场次</th>
+                        <th>K / D / A</th>
+                        <th>ADR</th>
+                        <th>KPR</th>
+                        <th>DPR</th>
+                        <th>Impact</th>
+                        <th>Rating</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for player in t_players %}
+                    <tr>
+                        <td style="color: var(--text-secondary);">{{ loop.index }}</td>
+                        <td class="player-name">{{ player.player_name }}</td>
+                        <td>{{ player.matches_played }}</td>
+                        <td class="ktd">
+                            <span class="k">{{ player.kills }}</span>
+                            /
+                            <span class="d">{{ player.deaths }}</span>
+                            /
+                            <span class="a">{{ player.assists }}</span>
+                        </td>
+                        <td>{{ "%.1f"|format(player.adr) }}</td>
+                        <td>{{ "%.3f"|format(player.kpr) }}</td>
+                        <td>{{ "%.3f"|format(player.dpr) }}</td>
+                        <td>{{ "%.3f"|format(player.impact) }}</td>
+                        <td class="rating-cell {% if player.rating >= 1.0 %}rating-high{% else %}rating-low{% endif %}">
+                            {{ "%.3f"|format(player.rating) }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

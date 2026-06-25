@@ -15,6 +15,32 @@
     <p class="subtitle">{{ match.date }} · {{ players|length }} 名玩家 · {{ match.demo_file_name }}</p>
 </div>
 
+{% if match.team_a_score is defined and match.team_b_score is defined and (match.team_a_score > 0 or match.team_b_score > 0) %}
+<div class="card" style="text-align: center; padding: 24px;">
+    <div style="display: flex; justify-content: center; align-items: center; gap: 40px;">
+        <div style="text-align: center;">
+            <div style="font-size: 14px; color: var(--text-secondary); margin-bottom: 4px;">{{ team_a_label }}</div>
+            <div style="font-size: 48px; font-weight: 700; color: #4a7cff;">{{ match.team_a_score }}</div>
+            {% if match.winner_team == match.team_a_number and match.winner_team != 0 %}
+            <span style="display: inline-block; background: #22c55e; color: white; font-size: 14px; font-weight: 600; padding: 2px 12px; border-radius: 4px; margin-top: 4px;">胜</span>
+            {% elif match.winner_team != 0 %}
+            <span style="display: inline-block; background: #ef4444; color: white; font-size: 14px; font-weight: 600; padding: 2px 12px; border-radius: 4px; margin-top: 4px;">败</span>
+            {% endif %}
+        </div>
+        <div style="font-size: 24px; color: var(--text-secondary); font-weight: 300;">:</div>
+        <div style="text-align: center;">
+            <div style="font-size: 14px; color: var(--text-secondary); margin-bottom: 4px;">{{ team_b_label }}</div>
+            <div style="font-size: 48px; font-weight: 700; color: #f59e0b;">{{ match.team_b_score }}</div>
+            {% if match.winner_team == match.team_b_number and match.winner_team != 0 %}
+            <span style="display: inline-block; background: #22c55e; color: white; font-size: 14px; font-weight: 600; padding: 2px 12px; border-radius: 4px; margin-top: 4px;">胜</span>
+            {% elif match.winner_team != 0 %}
+            <span style="display: inline-block; background: #ef4444; color: white; font-size: 14px; font-weight: 600; padding: 2px 12px; border-radius: 4px; margin-top: 4px;">败</span>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <div class="stat-cards">
     <div class="stat-card">
         <div class="label">最高 Rating</div>

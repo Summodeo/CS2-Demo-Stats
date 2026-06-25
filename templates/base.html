@@ -390,6 +390,7 @@
             <a href="/" class="nav-logo">CS2 <span>Stats</span></a>
             <div class="nav-links">
                 <a href="/" class="{% if request.path == '/' %}active{% endif %}">比赛</a>
+                <a href="/series" class="{% if request.path.startswith('/series') %}active{% endif %}">系列赛</a>
                 <a href="/leaderboard" class="{% if request.path == '/leaderboard' %}active{% endif %}">排行榜</a>
             </div>
         </div>

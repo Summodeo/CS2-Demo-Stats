@@ -449,4 +449,109 @@ def parse_demo(file_path):
         })
 
     result.sort(key=lambda x: x['rating'], reverse=True)
-    return map_name, result, total_rounds, demo_guid, team_groups
+
+    # ── Phase 7: extract team scores and winner (MR12 with side switches) ──
+    team_a_score = 0
+    team_b_score = 0
+    team_a_number = 0
+    team_b_number = 0
+
+    # Determine team numbers from player_items
+    team_nums = sorted(set(tn for _, tn, _ in player_items if tn not in (0,)))
+    if len(team_nums) >= 2:
+        team_a_number = team_nums[0]
+        team_b_number = team_nums[1]
+    elif len(team_nums) == 1:
+        team_a_number = team_nums[0]
+        team_b_number = 3 if team_nums[0] == 2 else 2
+
+    # CS2 MR12赛制：每半场12回合，加时赛每半场3回合
+    # 队伍会在每个半场结束后换边
+    # team_number是最终边（CT=3 或 T=2），需要按半场拆分并交替换边
+    ROUNDS_PER_HALF = 12
+    OT_ROUNDS_PER_HALF = 3
+
+    # 从rounds_data获取每回合的winner
+    round_winners = []  # [(round_num, winner_side)]  winner_side: 'CT' or 'T'
+    if rounds_data is not None and hasattr(rounds_data, 'iterrows'):
+        for _, rnd_row in rounds_data.iterrows():
+            rnd_num = rnd_row.get('round', 0)
+            winner = rnd_row.get('winner', None)
+            if pd.notna(winner) and rnd_num > 0:
+                round_winners.append((int(rnd_num), str(winner).strip()))
+
+    if round_winners:
+        # 按半场拆分回合
+        # Half 1: rounds 1-12, Half 2: 13-24, OT1: 25-27, OT2: 28-33, OT3: 34-36, ...
+        halves = []
+        current_half_start = 1
+        current_half_size = ROUNDS_PER_HALF
+        current_round = 1
+
+        for rnd_num, winner in round_winners:
+            pass  # just iterate to get max round
+
+        max_round = max(r[0] for r in round_winners)
+
+        # Generate half boundaries
+        half_boundaries = []
+        start = 1
+        # Regulation halves
+        half_boundaries.append((1, ROUNDS_PER_HALF))  # Half 1
+        half_boundaries.append((ROUNDS_PER_HALF + 1, ROUNDS_PER_HALF * 2))  # Half 2
+        # Overtime halves
+        ot_start = ROUNDS_PER_HALF * 2 + 1
+        while ot_start <= max_round:
+            half_boundaries.append((ot_start, ot_start + OT_ROUNDS_PER_HALF - 1))
+            ot_start += OT_ROUNDS_PER_HALF
+
+        # For each half, determine which side each team was on
+        # The LAST half: team_a_number (e.g. 3=CT) was on that side
+        # Going backwards, sides alternate each half
+
+        # Build a list of (half_index, side_for_team_a) where side is 'CT' or 'T'
+        # Last half: team_a is on side corresponding to team_a_number
+        team_a_side_in_last_half = 'CT' if team_a_number == 3 else 'T'
+
+        # Work backwards to determine side for each half
+        half_sides = [None] * len(half_boundaries)
+        half_sides[-1] = team_a_side_in_last_half
+        for i in range(len(half_boundaries) - 2, -1, -1):
+            prev_side = half_sides[i + 1]
+            half_sides[i] = 'T' if prev_side == 'CT' else 'CT'
+
+        # Count wins per team
+        for rnd_num, winner in round_winners:
+            # Find which half this round belongs to
+            half_idx = None
+            for idx, (h_start, h_end) in enumerate(half_boundaries):
+                if h_start <= rnd_num <= h_end:
+                    half_idx = idx
+                    break
+
+            if half_idx is None:
+                # Round beyond defined halves, assign to last half
+                half_idx = len(half_boundaries) - 1
+
+            team_a_side = half_sides[half_idx]
+
+            if winner == team_a_side:
+                team_a_score += 1
+            else:
+                team_b_score += 1
+
+    winner_team = 0  # 0=unknown, team_a_number=team_a won, team_b_number=team_b won
+    if team_a_score > team_b_score:
+        winner_team = team_a_number
+    elif team_b_score > team_a_score:
+        winner_team = team_b_number
+
+    match_info = {
+        'team_a_score': team_a_score,
+        'team_b_score': team_b_score,
+        'team_a_number': team_a_number,
+        'team_b_number': team_b_number,
+        'winner_team': winner_team,
+    }
+
+    return map_name, result, total_rounds, demo_guid, team_groups, match_info
